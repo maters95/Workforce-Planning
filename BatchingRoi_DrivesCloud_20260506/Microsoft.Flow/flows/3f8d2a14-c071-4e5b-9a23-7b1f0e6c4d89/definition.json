@@ -241,7 +241,6 @@
                   "inputs": {
                     "parameters": {
                       "emailMessage/To": "zakary.masters@transport.nsw.gov.au",
-                      "emailMessage/From": "zakary.masters@transport.nsw.gov.au",
                       "emailMessage/Subject": "@concat('DRIVES Batching - ', string(length(outputs('Compose_UniqueNumbers'))), ' number(s) ready - ', formatDateTime(convertTimeZone(utcNow(),'UTC','AUS Eastern Standard Time'),'d MMM yyyy'))",
                       "emailMessage/Body": "@concat('<h2>DRIVES Batch Number List</h2><p>The following ', string(length(outputs('Compose_UniqueNumbers'))), ' number(s) were extracted from the <strong>(Batched Today)X - Condition - Driving Record</strong> folder and are ready for DRIVES entry.</p><pre style=\"font-family:Courier New;font-size:14px;background:#f4f4f4;padding:12px;border-radius:4px\">', join(outputs('Compose_UniqueNumbers'), decodeUriComponent('%0A')), '</pre><p style=\"color:#555;font-size:12px\">Copy the numbers above into your DRIVES batching desktop flow. 8-digit numbers auto-advance; 4 or 7-digit numbers require Tab.</p>')",
                       "emailMessage/Importance": "Normal"
@@ -263,7 +262,6 @@
                     "inputs": {
                       "parameters": {
                         "emailMessage/To": "zakary.masters@transport.nsw.gov.au",
-                        "emailMessage/From": "zakary.masters@transport.nsw.gov.au",
                         "emailMessage/Subject": "DRIVES Batching - No numbers extracted from ROI.InterstateRequests",
                         "emailMessage/Body": "<p>The ROI Subject Extract flow ran but found no valid licence/customer numbers in the (Batched Today)X - Condition - Driving Record folder subjects.</p>",
                         "emailMessage/Importance": "High"
@@ -288,7 +286,6 @@
                 "inputs": {
                   "parameters": {
                     "emailMessage/To": "zakary.masters@transport.nsw.gov.au",
-                    "emailMessage/From": "zakary.masters@transport.nsw.gov.au",
                     "emailMessage/Subject": "DRIVES Batching - Folder not found in ROI.InterstateRequests",
                     "emailMessage/Body": "<p>The folder <strong>(Batched Today)X - Condition - Driving Record</strong> was not found under ROI.InterstateRequests inbox. The DRIVES batch list was not produced.</p>",
                     "emailMessage/Importance": "High"
