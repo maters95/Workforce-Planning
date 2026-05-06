@@ -180,20 +180,62 @@
                       },
                       "type": "If",
                       "expression": {
-                        "and": [
+                        "or": [
                           {
-                            "greater": ["@length(outputs('Compose_TokenTrim'))", 0]
-                          },
-                          {
-                            "equals": [
-                              "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_TokenTrim'),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
-                              ""
+                            "and": [
+                              {
+                                "greater": ["@length(outputs('Compose_TokenTrim'))", 0]
+                              },
+                              {
+                                "equals": [
+                                  "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_TokenTrim'),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                                  ""
+                                ]
+                              },
+                              {
+                                "or": [
+                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
+                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
+                                ]
+                              }
                             ]
                           },
                           {
-                            "or": [
-                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
-                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
+                            "and": [
+                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 6]},
+                              {
+                                "equals": [
+                                  "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(outputs('Compose_TokenTrim'),0,4),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                                  ""
+                                ]
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(outputs('Compose_TokenTrim'),4,2),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                                    ""
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "and": [
+                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 6]},
+                              {
+                                "equals": [
+                                  "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(outputs('Compose_TokenTrim'),0,5),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                                  ""
+                                ]
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(outputs('Compose_TokenTrim'),5,1),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                                    ""
+                                  ]
+                                }
+                              }
                             ]
                           }
                         ]
