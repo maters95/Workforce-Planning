@@ -106,7 +106,8 @@
               "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
               "connectionName": "shared_office365",
               "operationId": "HttpRequest"
-            }
+            },
+            "authentication": "@parameters('$authentication')"
           }
         },
         "Filter_Awaiting_PDF_Folder": {
@@ -152,7 +153,8 @@
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
                   "connectionName": "shared_office365",
                   "operationId": "HttpRequest"
-                }
+                },
+                "authentication": "@parameters('$authentication')"
               }
             },
             "Apply_to_each_Message": {
@@ -224,24 +226,9 @@
                               "type": "If",
                               "expression": {
                                 "or": [
-                                  {
-                                    "equals": [
-                                      "@length(outputs('Compose_TokenTrim'))",
-                                      4
-                                    ]
-                                  },
-                                  {
-                                    "equals": [
-                                      "@length(outputs('Compose_TokenTrim'))",
-                                      7
-                                    ]
-                                  },
-                                  {
-                                    "equals": [
-                                      "@length(outputs('Compose_TokenTrim'))",
-                                      8
-                                    ]
-                                  }
+                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 4]},
+                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
+                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
                                 ]
                               },
                               "actions": {
@@ -328,7 +315,8 @@
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
                       "connectionName": "shared_onedriveforbusiness",
                       "operationId": "CreateFile"
-                    }
+                    },
+                    "authentication": "@parameters('$authentication')"
                   }
                 },
                 "Create_InvalidTokens_File": {
@@ -347,7 +335,8 @@
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
                       "connectionName": "shared_onedriveforbusiness",
                       "operationId": "CreateFile"
-                    }
+                    },
+                    "authentication": "@parameters('$authentication')"
                   }
                 }
               },
@@ -360,14 +349,15 @@
                       "parameters": {
                         "emailMessage/To": "@variables('varMailbox')",
                         "emailMessage/Subject": "DRIVES Batching - No numbers extracted from ROI.InterstateRequests",
-                        "emailMessage/Body": "<p>The ROI Subject Extract flow ran but found no valid 4, 7, or 8-digit numbers in the (Batched Yesterday)Awaiting PDF folder subjects.</p><p>Please check the folder or subject format before running DRIVES batching manually.</p>",
+                        "emailMessage/Body": "<p>The ROI Subject Extract flow ran but found no valid 4, 7, or 8-digit numbers in the (Batched Yesterday)Awaiting PDF folder subjects.</p>",
                         "emailMessage/Importance": "High"
                       },
                       "host": {
                         "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
                         "connectionName": "shared_office365",
                         "operationId": "SendEmailV2"
-                      }
+                      },
+                      "authentication": "@parameters('$authentication')"
                     }
                   }
                 }
@@ -390,7 +380,8 @@
                     "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
                     "connectionName": "shared_office365",
                     "operationId": "SendEmailV2"
-                  }
+                  },
+                  "authentication": "@parameters('$authentication')"
                 }
               }
             }
@@ -401,21 +392,27 @@
     },
     "connectionReferences": {
       "shared_office365": {
-        "runtimeSource": "invoker",
-        "connection": {},
-        "api": {
-          "name": "shared_office365"
-        }
+        "connectionName": "shared_office365",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_office365",
+        "displayName": "Office 365 Outlook",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/office365/icon.png",
+        "brandColor": "#0078D4",
+        "tier": "Standard",
+        "isProcessSimpleApiReferenceConversionAlreadyDone": false
       },
       "shared_onedriveforbusiness": {
-        "runtimeSource": "invoker",
-        "connection": {},
-        "api": {
-          "name": "shared_onedriveforbusiness"
-        }
+        "connectionName": "shared_onedriveforbusiness",
+        "source": "Embedded",
+        "id": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+        "displayName": "OneDrive for Business",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/onedriveforbusiness/icon.png",
+        "brandColor": "#0078D4",
+        "tier": "Standard",
+        "isProcessSimpleApiReferenceConversionAlreadyDone": false
       }
     },
-    "state": "Started",
-    "description": "Reads ROI.InterstateRequests mailbox Awaiting PDF folder, extracts licence/customer numbers from subjects, deduplicates, and writes BatchList.txt to OneDrive for consumption by the DRIVES desktop flow."
+    "flowFailureAlertSubscribed": false,
+    "isManaged": false
   }
 }
