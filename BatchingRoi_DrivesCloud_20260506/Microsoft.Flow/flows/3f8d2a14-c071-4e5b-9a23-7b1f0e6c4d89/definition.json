@@ -128,7 +128,7 @@
                   "type": "Select",
                   "inputs": {
                     "from": "@split(outputs('Compose_SubjectClean'), ' ')",
-                    "select": "@trim(item())"
+                    "select": "@if(and(greaterOrEquals(length(trim(item())),8),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(item()),sub(length(trim(item())),8),8),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(item()),sub(length(trim(item())),8),8),if(and(greaterOrEquals(length(trim(item())),7),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(item()),sub(length(trim(item())),7),7),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(item()),sub(length(trim(item())),7),7),trim(item())))"
                   }
                 },
                 "Filter_Valid_Tokens": {
