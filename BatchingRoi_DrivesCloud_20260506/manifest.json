@@ -1,0 +1,53 @@
+{
+  "schema": "1.0",
+  "details": {
+    "displayName": "ROI Subject Extract to DRIVES List",
+    "description": "Reads ROI.InterstateRequests mailbox, extracts licence/customer numbers from email subjects, deduplicates and writes BatchList.txt to OneDrive, then triggers the DRIVES batching desktop flow.",
+    "createdTime": "2026-05-06T00:00:00.0000000Z",
+    "packageTelemetryId": "a1c3e527-b840-4d72-9f14-6c2b0d8e1a37",
+    "creator": "N/A",
+    "sourceEnvironment": ""
+  },
+  "resources": {
+    "3f8d2a14-c071-4e5b-9a23-7b1f0e6c4d89": {
+      "type": "Microsoft.Flow/flows",
+      "suggestedCreationType": "New",
+      "creationType": "Existing, New, Update",
+      "details": {
+        "displayName": "ROI Subject Extract to DRIVES List"
+      },
+      "configurableBy": "User",
+      "hierarchy": "Root",
+      "dependsOn": [
+        "shared_office365_connection",
+        "shared_onedriveforbusiness_connection"
+      ]
+    },
+    "shared_office365_connection": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_office365",
+      "name": "shared_office365",
+      "type": "Microsoft.PowerApps/apis",
+      "suggestedCreationType": "Existing",
+      "details": {
+        "displayName": "Office 365 Outlook",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/office365/icon.png"
+      },
+      "configurableBy": "System",
+      "hierarchy": "Child",
+      "dependsOn": []
+    },
+    "shared_onedriveforbusiness_connection": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+      "name": "shared_onedriveforbusiness",
+      "type": "Microsoft.PowerApps/apis",
+      "suggestedCreationType": "Existing",
+      "details": {
+        "displayName": "OneDrive for Business",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/onedriveforbusiness/icon.png"
+      },
+      "configurableBy": "System",
+      "hierarchy": "Child",
+      "dependsOn": []
+    }
+  }
+}
