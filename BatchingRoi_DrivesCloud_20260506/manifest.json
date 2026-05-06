@@ -19,11 +19,11 @@
       "configurableBy": "User",
       "hierarchy": "Root",
       "dependsOn": [
-        "shared_office365_connection",
-        "shared_onedriveforbusiness_connection"
+        "f1b3a592-8c40-4e78-b6d1-9a7e2f0c3d85",
+        "d9e5f724-3b60-4d72-9a48-1c3f2e7b8d63"
       ]
     },
-    "shared_office365_connection": {
+    "e5a2f903-1b84-4c67-9d25-8f0a3e6b1c74": {
       "id": "/providers/Microsoft.PowerApps/apis/shared_office365",
       "name": "shared_office365",
       "type": "Microsoft.PowerApps/apis",
@@ -36,7 +36,19 @@
       "hierarchy": "Child",
       "dependsOn": []
     },
-    "shared_onedriveforbusiness_connection": {
+    "f1b3a592-8c40-4e78-b6d1-9a7e2f0c3d85": {
+      "type": "Microsoft.PowerApps/apis/connections",
+      "suggestedCreationType": "Existing",
+      "creationType": "Existing",
+      "details": {
+        "displayName": "Office 365 Outlook",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/office365/icon.png"
+      },
+      "configurableBy": "User",
+      "hierarchy": "Child",
+      "dependsOn": ["e5a2f903-1b84-4c67-9d25-8f0a3e6b1c74"]
+    },
+    "b7c4d813-5f29-4a61-8e37-2d0f1b6a9c52": {
       "id": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
       "name": "shared_onedriveforbusiness",
       "type": "Microsoft.PowerApps/apis",
@@ -48,6 +60,18 @@
       "configurableBy": "System",
       "hierarchy": "Child",
       "dependsOn": []
+    },
+    "d9e5f724-3b60-4d72-9a48-1c3f2e7b8d63": {
+      "type": "Microsoft.PowerApps/apis/connections",
+      "suggestedCreationType": "Existing",
+      "creationType": "Existing",
+      "details": {
+        "displayName": "OneDrive for Business",
+        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/onedriveforbusiness/icon.png"
+      },
+      "configurableBy": "User",
+      "hierarchy": "Child",
+      "dependsOn": ["b7c4d813-5f29-4a61-8e37-2d0f1b6a9c52"]
     }
   }
 }
