@@ -157,17 +157,10 @@
               "type": "Foreach",
               "foreach": "@body('Get_Messages')?['value']",
               "actions": {
-                "Compose_SubjectStripped": {
+                "Compose_SubjectClean": {
                   "runAfter": {},
                   "type": "Compose",
-                  "inputs": "@trim(last(split(toLower(if(startsWith(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'],''))),'fwd: '),substring(trim(coalesce(items('Apply_to_each_Message')?['subject'],'')),5,sub(length(trim(coalesce(items('Apply_to_each_Message')?['subject'],''))),5)),if(or(startsWith(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'],''))),'fw: '),startsWith(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'],''))),'re: ')),substring(trim(coalesce(items('Apply_to_each_Message')?['subject'],'')),4,sub(length(trim(coalesce(items('Apply_to_each_Message')?['subject'],''))),4)),trim(coalesce(items('Apply_to_each_Message')?['subject'],'')))))),  'driving record for ')))"
-                },
-                "Compose_SubjectClean": {
-                  "runAfter": {
-                    "Compose_SubjectStripped": ["Succeeded"]
-                  },
-                  "type": "Compose",
-                  "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_SubjectStripped'),'(',' '),')',' '),',',' '),'-',' '),'/',' '),':',' '),'.',' '),';',' '),'#',' ')"
+                  "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'], ''))),'(',' '),')',' '),',',' '),'-',' '),'/',' '),':',' '),'.',' '),';',' '),'#',' ')"
                 },
                 "Apply_to_each_Token": {
                   "runAfter": {
@@ -199,7 +192,6 @@
                           },
                           {
                             "or": [
-                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 4]},
                               {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
                               {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
                             ]
