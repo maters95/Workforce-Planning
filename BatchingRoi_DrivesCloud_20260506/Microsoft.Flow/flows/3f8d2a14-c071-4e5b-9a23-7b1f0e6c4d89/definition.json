@@ -99,7 +99,7 @@
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
-              "Uri": "@{concat('https://graph.microsoft.com/v1.0/users/',variables('varMailbox'),'/mailFolders/inbox/childFolders?$select=id,displayName&$top=100')}",
+              "Uri": "https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/inbox/childFolders?$select=id,displayName&$top=100",
               "Method": "GET"
             },
             "host": {
@@ -117,7 +117,7 @@
           "type": "Query",
           "inputs": {
             "from": "@body('Get_Child_Folders')?['value']",
-            "where": "@equals(item()?['displayName'], variables('varTargetFolderName'))"
+            "where": "@equals(item()?['displayName'], '(Batched Yesterday)Awaiting PDF')"
           }
         },
         "Condition_Folder_Found": {
@@ -134,19 +134,12 @@
             }]
           },
           "actions": {
-            "Compose_FolderMessagesUri": {
+            "Get_Messages": {
               "runAfter": {},
-              "type": "Compose",
-              "inputs": "@concat('https://graph.microsoft.com/v1.0/users/',variables('varMailbox'),'/mailFolders/',first(body('Filter_Awaiting_PDF_Folder'))?['id'],'/messages?$select=id,subject,receivedDateTime&$top=999')"
-            },
-            "HTTP_List_Messages": {
-              "runAfter": {
-                "Compose_FolderMessagesUri": ["Succeeded"]
-              },
               "type": "OpenApiConnection",
               "inputs": {
                 "parameters": {
-                  "Uri": "@outputs('Compose_FolderMessagesUri')",
+                  "Uri": "@{concat('https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/',first(body('Filter_Awaiting_PDF_Folder'))?['id'],'/messages?$select=id,subject,receivedDateTime&$top=999')}",
                   "Method": "GET"
                 },
                 "host": {
@@ -159,109 +152,60 @@
             },
             "Apply_to_each_Message": {
               "runAfter": {
-                "HTTP_List_Messages": ["Succeeded"]
+                "Get_Messages": ["Succeeded"]
               },
               "type": "Foreach",
-              "foreach": "@body('HTTP_List_Messages')?['value']",
+              "foreach": "@body('Get_Messages')?['value']",
               "actions": {
-                "Compose_SubjectLower": {
+                "Compose_SubjectClean": {
                   "runAfter": {},
                   "type": "Compose",
-                  "inputs": "@toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'], '')))"
-                },
-                "Compose_SubjectClean": {
-                  "runAfter": {
-                    "Compose_SubjectLower": ["Succeeded"]
-                  },
-                  "type": "Compose",
-                  "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_SubjectLower'),'(',' '),')',' '),',',' '),'-',' '),'/',' '),':',' '),'.',' '),';',' '),'#',' ')"
-                },
-                "Compose_Tokens": {
-                  "runAfter": {
-                    "Compose_SubjectClean": ["Succeeded"]
-                  },
-                  "type": "Compose",
-                  "inputs": "@split(outputs('Compose_SubjectClean'),' ')"
+                  "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'], ''))),'(',' '),')',' '),',',' '),'-',' '),'/',' '),':',' '),'.',' '),';',' '),'#',' ')"
                 },
                 "Apply_to_each_Token": {
                   "runAfter": {
-                    "Compose_Tokens": ["Succeeded"]
+                    "Compose_SubjectClean": ["Succeeded"]
                   },
                   "type": "Foreach",
-                  "foreach": "@outputs('Compose_Tokens')",
+                  "foreach": "@split(outputs('Compose_SubjectClean'),' ')",
                   "actions": {
                     "Compose_TokenTrim": {
                       "runAfter": {},
                       "type": "Compose",
                       "inputs": "@trim(item())"
                     },
-                    "Condition_Token_Not_Empty": {
+                    "Condition_Valid_Token": {
                       "runAfter": {
                         "Compose_TokenTrim": ["Succeeded"]
                       },
                       "type": "If",
                       "expression": {
-                        "and": [{
-                          "greater": [
-                            "@length(outputs('Compose_TokenTrim'))",
-                            0
-                          ]
-                        }]
+                        "and": [
+                          {
+                            "greater": ["@length(outputs('Compose_TokenTrim'))", 0]
+                          },
+                          {
+                            "equals": [
+                              "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_TokenTrim'),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
+                              ""
+                            ]
+                          },
+                          {
+                            "or": [
+                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 4]},
+                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
+                              {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
+                            ]
+                          }
+                        ]
                       },
                       "actions": {
-                        "Condition_Digits_Only": {
+                        "Append_Valid_Number": {
                           "runAfter": {},
-                          "type": "If",
-                          "expression": {
-                            "and": [{
-                              "equals": [
-                                "@trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_TokenTrim'),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''))",
-                                ""
-                              ]
-                            }]
-                          },
-                          "actions": {
-                            "Condition_Length_Valid": {
-                              "runAfter": {},
-                              "type": "If",
-                              "expression": {
-                                "or": [
-                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 4]},
-                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 7]},
-                                  {"equals": ["@length(outputs('Compose_TokenTrim'))", 8]}
-                                ]
-                              },
-                              "actions": {
-                                "Append_to_varNumbersRaw": {
-                                  "runAfter": {},
-                                  "type": "AppendToArrayVariable",
-                                  "inputs": {
-                                    "name": "varNumbersRaw",
-                                    "value": "@outputs('Compose_TokenTrim')"
-                                  }
-                                }
-                              },
-                              "else": {
-                                "actions": {
-                                  "Append_to_varInvalidRows": {
-                                    "runAfter": {},
-                                    "type": "AppendToArrayVariable",
-                                    "inputs": {
-                                      "name": "varInvalidRows",
-                                      "value": {
-                                        "messageId": "@{items('Apply_to_each_Message')?['id']}",
-                                        "subject": "@{items('Apply_to_each_Message')?['subject']}",
-                                        "token": "@{outputs('Compose_TokenTrim')}",
-                                        "reason": "Invalid length"
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "else": {
-                            "actions": {}
+                          "type": "AppendToArrayVariable",
+                          "inputs": {
+                            "name": "varNumbersRaw",
+                            "value": "@outputs('Compose_TokenTrim')"
                           }
                         }
                       },
@@ -287,54 +231,24 @@
               "type": "If",
               "expression": {
                 "and": [{
-                  "greater": [
-                    "@length(outputs('Compose_UniqueNumbers'))",
-                    0
-                  ]
+                  "greater": ["@length(outputs('Compose_UniqueNumbers'))", 0]
                 }]
               },
               "actions": {
-                "Compose_BatchListText": {
+                "Write_BatchList_to_OneDrive": {
                   "runAfter": {},
-                  "type": "Compose",
-                  "inputs": "@join(outputs('Compose_UniqueNumbers'), decodeUriComponent('%0A'))"
-                },
-                "Create_BatchList_File": {
-                  "runAfter": {
-                    "Compose_BatchListText": ["Succeeded"]
-                  },
                   "type": "OpenApiConnection",
                   "inputs": {
                     "parameters": {
-                      "dataset": "me",
-                      "folderPath": "/DRIVES/BatchInput",
-                      "name": "BatchList.txt",
-                      "body": "@outputs('Compose_BatchListText')"
+                      "Uri": "https://graph.microsoft.com/v1.0/me/drive/root:/DRIVES/BatchInput/BatchList.txt:/content",
+                      "Method": "PUT",
+                      "Body": "@join(outputs('Compose_UniqueNumbers'), decodeUriComponent('%0A'))",
+                      "ContentType": "text/plain"
                     },
                     "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
-                      "connectionName": "shared_onedriveforbusiness",
-                      "operationId": "CreateFile"
-                    },
-                    "authentication": "@parameters('$authentication')"
-                  }
-                },
-                "Create_InvalidTokens_File": {
-                  "runAfter": {
-                    "Create_BatchList_File": ["Succeeded"]
-                  },
-                  "type": "OpenApiConnection",
-                  "inputs": {
-                    "parameters": {
-                      "dataset": "me",
-                      "folderPath": "/DRIVES/BatchInput",
-                      "name": "@{concat('InvalidTokens_', formatDateTime(convertTimeZone(utcNow(),'UTC','AUS Eastern Standard Time'),'yyyyMMdd_HHmmss'), '.json')}",
-                      "body": "@string(variables('varInvalidRows'))"
-                    },
-                    "host": {
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
-                      "connectionName": "shared_onedriveforbusiness",
-                      "operationId": "CreateFile"
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                      "connectionName": "shared_office365",
+                      "operationId": "HttpRequest"
                     },
                     "authentication": "@parameters('$authentication')"
                   }
@@ -347,9 +261,9 @@
                     "type": "OpenApiConnection",
                     "inputs": {
                       "parameters": {
-                        "emailMessage/To": "@variables('varMailbox')",
+                        "emailMessage/To": "ROI.InterstateRequests@transport.nsw.gov.au",
                         "emailMessage/Subject": "DRIVES Batching - No numbers extracted from ROI.InterstateRequests",
-                        "emailMessage/Body": "<p>The ROI Subject Extract flow ran but found no valid 4, 7, or 8-digit numbers in the (Batched Yesterday)Awaiting PDF folder subjects.</p>",
+                        "emailMessage/Body": "<p>The ROI Subject Extract flow ran but found no valid licence/customer numbers in the (Batched Yesterday)Awaiting PDF folder subjects.</p>",
                         "emailMessage/Importance": "High"
                       },
                       "host": {
@@ -371,9 +285,9 @@
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
-                    "emailMessage/To": "@variables('varMailbox')",
+                    "emailMessage/To": "ROI.InterstateRequests@transport.nsw.gov.au",
                     "emailMessage/Subject": "DRIVES Batching - Folder not found in ROI.InterstateRequests",
-                    "emailMessage/Body": "<p>The folder <strong>(Batched Yesterday)Awaiting PDF</strong> was not found under ROI.InterstateRequests@transport.nsw.gov.au. The DRIVES batch list was not produced.</p>",
+                    "emailMessage/Body": "<p>The folder <strong>(Batched Yesterday)Awaiting PDF</strong> was not found under ROI.InterstateRequests inbox. The DRIVES batch list was not produced.</p>",
                     "emailMessage/Importance": "High"
                   },
                   "host": {
@@ -392,23 +306,14 @@
     },
     "connectionReferences": {
       "shared_office365": {
-        "connectionName": "shared_office365",
+        "connectionName": "shared-office365-placeholder",
         "source": "Embedded",
         "id": "/providers/Microsoft.PowerApps/apis/shared_office365",
         "displayName": "Office 365 Outlook",
         "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/office365/icon.png",
         "brandColor": "#0078D4",
         "tier": "Standard",
-        "isProcessSimpleApiReferenceConversionAlreadyDone": false
-      },
-      "shared_onedriveforbusiness": {
-        "connectionName": "shared_onedriveforbusiness",
-        "source": "Embedded",
-        "id": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
-        "displayName": "OneDrive for Business",
-        "iconUri": "https://static.powerapps.com/resource/ppcr/releases/v1.0.1802/1.0.1802.4700/onedriveforbusiness/icon.png",
-        "brandColor": "#0078D4",
-        "tier": "Standard",
+        "apiName": "office365",
         "isProcessSimpleApiReferenceConversionAlreadyDone": false
       }
     },
