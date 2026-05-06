@@ -235,20 +235,21 @@
                 }]
               },
               "actions": {
-                "Write_BatchList_to_OneDrive": {
+                "Send_BatchList_Email": {
                   "runAfter": {},
                   "type": "OpenApiConnection",
                   "inputs": {
                     "parameters": {
-                      "Uri": "https://graph.microsoft.com/v1.0/me/drive/root:/DRIVES/BatchInput/BatchList.txt:/content",
-                      "Method": "PUT",
-                      "Body": "@join(outputs('Compose_UniqueNumbers'), decodeUriComponent('%0A'))",
-                      "ContentType": "text/plain"
+                      "emailMessage/To": "zakary.masters@transport.nsw.gov.au",
+                      "emailMessage/From": "zakary.masters@transport.nsw.gov.au",
+                      "emailMessage/Subject": "@concat('DRIVES Batching - ', string(length(outputs('Compose_UniqueNumbers'))), ' number(s) ready - ', formatDateTime(convertTimeZone(utcNow(),'UTC','AUS Eastern Standard Time'),'d MMM yyyy'))",
+                      "emailMessage/Body": "@concat('<h2>DRIVES Batch Number List</h2><p>The following ', string(length(outputs('Compose_UniqueNumbers'))), ' number(s) were extracted from the <strong>(Batched Today)X - Condition - Driving Record</strong> folder and are ready for DRIVES entry.</p><pre style=\"font-family:Courier New;font-size:14px;background:#f4f4f4;padding:12px;border-radius:4px\">', join(outputs('Compose_UniqueNumbers'), decodeUriComponent('%0A')), '</pre><p style=\"color:#555;font-size:12px\">Copy the numbers above into your DRIVES batching desktop flow. 8-digit numbers auto-advance; 4 or 7-digit numbers require Tab.</p>')",
+                      "emailMessage/Importance": "Normal"
                     },
                     "host": {
                       "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
                       "connectionName": "shared_office365",
-                      "operationId": "HttpRequest"
+                      "operationId": "SendEmailV2"
                     },
                     "authentication": "@parameters('$authentication')"
                   }
