@@ -53,22 +53,9 @@
             }]
           }
         },
-        "Initialize_varTargetFolderName": {
-          "runAfter": {
-            "Initialize_varMailbox": ["Succeeded"]
-          },
-          "type": "InitializeVariable",
-          "inputs": {
-            "variables": [{
-              "name": "varTargetFolderName",
-              "type": "string",
-              "value": "(Batched Today)X - Condition - Driving Record"
-            }]
-          }
-        },
         "Initialize_varNumbersRaw": {
           "runAfter": {
-            "Initialize_varTargetFolderName": ["Succeeded"]
+            "Initialize_varMailbox": ["Succeeded"]
           },
           "type": "InitializeVariable",
           "inputs": {
@@ -92,14 +79,14 @@
             }]
           }
         },
-        "Get_Child_Folders": {
+        "Get_Messages": {
           "runAfter": {
             "Initialize_varInvalidRows": ["Succeeded"]
           },
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
-              "Uri": "https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/inbox/childFolders?$select=id,displayName&$top=100",
+              "Uri": "https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/inbox/messages?$select=id,subject,receivedDateTime&$top=999",
               "Method": "GET"
             },
             "host": {
@@ -110,50 +97,22 @@
             "authentication": "@parameters('$authentication')"
           }
         },
-        "Filter_Awaiting_PDF_Folder": {
+        "Condition_Has_Messages": {
           "runAfter": {
-            "Get_Child_Folders": ["Succeeded"]
-          },
-          "type": "Query",
-          "inputs": {
-            "from": "@body('Get_Child_Folders')?['value']",
-            "where": "@equals(item()?['displayName'], '(Batched Today)X - Condition - Driving Record')"
-          }
-        },
-        "Condition_Folder_Found": {
-          "runAfter": {
-            "Filter_Awaiting_PDF_Folder": ["Succeeded"]
+            "Get_Messages": ["Succeeded"]
           },
           "type": "If",
           "expression": {
             "and": [{
               "greater": [
-                "@length(body('Filter_Awaiting_PDF_Folder'))",
+                "@length(body('Get_Messages')?['value'])",
                 0
               ]
             }]
           },
           "actions": {
-            "Get_Messages": {
-              "runAfter": {},
-              "type": "OpenApiConnection",
-              "inputs": {
-                "parameters": {
-                  "Uri": "@{concat('https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/',first(body('Filter_Awaiting_PDF_Folder'))?['id'],'/messages?$select=id,subject,receivedDateTime&$top=999')}",
-                  "Method": "GET"
-                },
-                "host": {
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
-                  "connectionName": "shared_office365",
-                  "operationId": "HttpRequest"
-                },
-                "authentication": "@parameters('$authentication')"
-              }
-            },
             "Apply_to_each_Message": {
-              "runAfter": {
-                "Get_Messages": ["Succeeded"]
-              },
+              "runAfter": {},
               "type": "Foreach",
               "foreach": "@body('Get_Messages')?['value']",
               "actions": {
@@ -321,14 +280,14 @@
           },
           "else": {
             "actions": {
-              "Send_Folder_Not_Found_Alert": {
+              "Send_Empty_Inbox_Alert": {
                 "runAfter": {},
                 "type": "OpenApiConnection",
                 "inputs": {
                   "parameters": {
                     "emailMessage/To": "zakary.masters@transport.nsw.gov.au",
-                    "emailMessage/Subject": "DRIVES Batching - Folder not found in ROI.InterstateRequests",
-                    "emailMessage/Body": "<p>The folder <strong>(Batched Today)X - Condition - Driving Record</strong> was not found under ROI.InterstateRequests inbox. The DRIVES batch list was not produced.</p>",
+                    "emailMessage/Subject": "DRIVES Batching - ROI.InterstateRequests inbox is empty",
+                    "emailMessage/Body": "<p>The ROI Subject Extract flow ran but the ROI.InterstateRequests inbox contained no messages.</p>",
                     "emailMessage/Importance": "High"
                   },
                   "host": {
