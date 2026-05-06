@@ -86,7 +86,7 @@
           "type": "OpenApiConnection",
           "inputs": {
             "parameters": {
-              "Uri": "https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/mailFolders/inbox/messages?$select=id,subject,receivedDateTime&$top=999",
+              "Uri": "https://graph.microsoft.com/v1.0/users/ROI.InterstateRequests@transport.nsw.gov.au/messages?$select=id,subject,receivedDateTime&$top=999",
               "Method": "GET"
             },
             "host": {
