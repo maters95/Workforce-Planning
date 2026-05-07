@@ -167,15 +167,7 @@ Public Sub DrivesEntry()
         Exit Sub
     End If
 
-    Sleep 400
-
-    ' Alt+D focuses Edge address bar; ESC immediately returns DOM focus to the page.
-    ' This is the most reliable way to guarantee a page input (not the address bar)
-    ' receives keystrokes after AppActivate.
-    m_wsh.SendKeys "%d"     ' Alt+D  → address bar
-    Sleep 200
-    m_wsh.SendKeys "{ESCAPE}" ' Esc   → returns DOM focus to last page input
-    Sleep 500
+    Sleep 1000  ' wait for Edge to restore DOM focus to the page input
 
     ' ── 5. NAVIGATE TO BATCH DRIVING RECORD REQUEST SCREEN ───────
     SK "3~",  400

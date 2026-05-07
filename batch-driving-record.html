@@ -780,20 +780,19 @@
 
   showScreen(0);
 
-  // Re-focus the active input whenever the browser window regains OS focus.
-  // setTimeout defers until Chromium has finished its own focus processing
-  // (calling .focus() synchronously inside window.focus is blocked in Edge/Chrome).
+  // Fallback: if Edge didn't restore focus to a page input on window focus,
+  // find the active screen's first input and focus it.
   window.addEventListener('focus', function() {
     setTimeout(function() {
-      var screen = document.querySelector('.screen.active');
-      if (!screen) return;
       var active = document.activeElement;
-      // Only override if no terminal input already has focus
-      if (!active || active.tagName !== 'INPUT' || !screen.contains(active)) {
-        var input = screen.querySelector('input');
-        if (input) input.focus();
+      if (!active || active.tagName !== 'INPUT') {
+        var screen = document.querySelector('.screen.active');
+        if (screen) {
+          var input = screen.querySelector('input');
+          if (input) input.focus();
+        }
       }
-    }, 150);
+    }, 100);
   });
 })();
 </script>
