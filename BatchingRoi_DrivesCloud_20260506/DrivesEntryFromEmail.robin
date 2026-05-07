@@ -88,18 +88,19 @@ Input.SendKeys.FocusAndSendKeys Text: "7{Return}" DelayBetweenKeystrokes: 100 Se
 System.Wait.Wait WaitForSeconds: 0.4
 
 # ─────────────────────────────────────────────────────────────────
-# 5. FILL THE HEADER: Y → (auto-advance) → N → (auto-advance) → Enter
+# 5. FILL THE HEADER: Y → (auto-advance) → N → (auto-advance) → Y → (auto-advance) → Enter
 #    (opens the email selection screen)
-#    Y = Standard Driving Record Request
-#    N = Traffic Record Section 12 Request
-#    Enter on Email pdf field → screen 5
 # ─────────────────────────────────────────────────────────────────
 # Type Y — auto-advances to field 1
 Input.SendKeys.FocusAndSendKeys Text: "Y" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
 System.Wait.Wait WaitForSeconds: 0.2
 
-# Type N — auto-advances to Email pdf field
+# Type N — auto-advances to field 2
 Input.SendKeys.FocusAndSendKeys Text: "N" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.2
+
+# Type Y — auto-advances to Email pdf field
+Input.SendKeys.FocusAndSendKeys Text: "Y" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
 System.Wait.Wait WaitForSeconds: 0.2
 
 # Press Enter on Email pdf field → opens TRAFFIC_REC_EMAIL selector
@@ -108,19 +109,23 @@ System.Wait.Wait WaitForSeconds: 0.4
 
 # ─────────────────────────────────────────────────────────────────
 # 6. SELECT EMAIL ON SCREEN 5
-#    Tab to Sel field → type X → F5 to return
+#    Tab to Sel field → type S → F5 to return → Tab → Tab to grid
 # ─────────────────────────────────────────────────────────────────
 # Tab past "Start List At Value" to the Sel field
 Input.SendKeys.FocusAndSendKeys Text: "{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
 System.Wait.Wait WaitForSeconds: 0.2
 
-# Type X to select the CAU email row
-Input.SendKeys.FocusAndSendKeys Text: "X" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+# Type S to select the CAU email row
+Input.SendKeys.FocusAndSendKeys Text: "S" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
 System.Wait.Wait WaitForSeconds: 0.1
 
 # F5 to return to batch form with email populated
 Input.SendKeys.FocusAndSendKeys Text: "{F5}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
 System.Wait.Wait WaitForSeconds: 0.4
+
+# Tab → Tab to move cursor to the first grid cell
+Input.SendKeys.FocusAndSendKeys Text: "{Tab}{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.2
 
 # ─────────────────────────────────────────────────────────────────
 # 7. ENTER THE NUMBERS INTO THE GRID
@@ -175,16 +180,22 @@ LOOP WHILE Offset < TotalNumbers
         System.Wait.Wait WaitForSeconds: 0.2
         Input.SendKeys.FocusAndSendKeys Text: "N" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
         System.Wait.Wait WaitForSeconds: 0.2
+        Input.SendKeys.FocusAndSendKeys Text: "Y" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.2
         Input.SendKeys.FocusAndSendKeys Text: "{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
         System.Wait.Wait WaitForSeconds: 0.5
 
         # Email select
         Input.SendKeys.FocusAndSendKeys Text: "{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
         System.Wait.Wait WaitForSeconds: 0.2
-        Input.SendKeys.FocusAndSendKeys Text: "X" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        Input.SendKeys.FocusAndSendKeys Text: "S" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
         System.Wait.Wait WaitForSeconds: 0.1
         Input.SendKeys.FocusAndSendKeys Text: "{F5}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
         System.Wait.Wait WaitForSeconds: 0.5
+
+        # Tab → Tab to move cursor to the first grid cell
+        Input.SendKeys.FocusAndSendKeys Text: "{Tab}{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.2
     END
 END
 
