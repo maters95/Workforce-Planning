@@ -135,8 +135,12 @@ Public Sub DrivesEntry()
 
     If TEST_MODE Then
         Shell "cmd /c start """" """ & TEST_HTML & """", vbHide
-        Sleep 2000
+        Sleep 3000
     End If
+
+    ' Minimise Excel so Windows focus-stealing prevention doesn't block AppActivate
+    Application.WindowState = xlMinimized
+    Sleep 500
 
     ' Retry AppActivate until the window responds (up to 10 seconds)
     Dim focused As Boolean : focused = False
@@ -148,6 +152,7 @@ Public Sub DrivesEntry()
     Next attempt
 
     If Not focused Then
+        Application.WindowState = xlNormal
         MsgBox "Could not find window: """ & m_target & """." & vbCrLf & _
                "Make sure the window is open and the title matches.", _
                vbExclamation, "DRIVES Batch Entry"
@@ -218,6 +223,7 @@ Public Sub DrivesEntry()
     ' ── 9. MARK EMAIL AS READ AND FINISH ─────────────────────────
     batchEmail.UnRead = False
 
+    Application.WindowState = xlNormal
     MsgBox "All " & total & " number(s) submitted to DRIVES successfully.", _
            vbInformation, "DRIVES Batch Entry Complete"
 
