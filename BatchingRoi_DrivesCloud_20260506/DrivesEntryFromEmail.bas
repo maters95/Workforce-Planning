@@ -138,8 +138,23 @@ Public Sub DrivesEntry()
         Sleep 2000
     End If
 
-    m_wsh.AppActivate m_target
-    Sleep 600
+    ' Retry AppActivate until the window responds (up to 10 seconds)
+    Dim focused As Boolean : focused = False
+    Dim attempt As Long
+    For attempt = 1 To 20
+        focused = m_wsh.AppActivate(m_target)
+        If focused Then Exit For
+        Sleep 500
+    Next attempt
+
+    If Not focused Then
+        MsgBox "Could not find window: """ & m_target & """." & vbCrLf & _
+               "Make sure the window is open and the title matches.", _
+               vbExclamation, "DRIVES Batch Entry"
+        Exit Sub
+    End If
+
+    Sleep 400   ' brief pause after focus before sending keys
 
     ' ── 5. NAVIGATE TO BATCH DRIVING RECORD REQUEST SCREEN ───────
     SK "3~",  400
