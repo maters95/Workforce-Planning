@@ -787,9 +787,83 @@
 
   showScreen(0);
 
-  // Re-focus the active input when the page/document regains focus.
-  // Listening on document is more reliable than window in Edge/Chromium.
-  function refocusActiveInput() {
+  // ── AUTO-POPULATE FROM ?nums=N1,N2,...&batch=N ─────────────────
+  // When opened by the VBA macro, numbers arrive in the URL query string.
+  // The page skips menu navigation and goes straight to the pre-filled batch form.
+  (function() {
+    if (!location.search) return;
+    var p   = new URLSearchParams(location.search);
+    var raw = p.get('nums');
+    if (!raw || !raw.trim()) return;
+
+    var all = raw.split(',')
+                 .map(function(s) { return s.trim().toUpperCase(); })
+                 .filter(function(s) { return s.length > 0; });
+    if (!all.length) return;
+
+    var batchNum  = Math.max(0, parseInt(p.get('batch') || '0', 10));
+    var chunk     = all.slice(batchNum * 90, (batchNum + 1) * 90);
+    if (!chunk.length) return;
+
+    var totalBatches = Math.ceil(all.length / 90);
+    var hasMore      = batchNum + 1 < totalBatches;
+
+    // Jump directly to screen 4 — skip screens 0-3
+    screens.forEach(function(s) { s.classList.remove('active'); });
+    screens[4].classList.add('active');
+    currentScreen = 4;
+
+    // Set email state so form doesn't require screen 5 navigation
+    emailSelected = true;
+    emailValue    = 'batchemail@mail.com';
+    emailDisplay.textContent = emailValue;
+
+    // Fill header inputs (Y / N / Y)
+    headerInputs[0].value = 'Y';
+    headerInputs[1].value = 'N';
+    headerInputs[2].value = 'Y';
+
+    // Fill grid cells
+    for (var gi = 0; gi < chunk.length && gi < gridInputs.length; gi++) {
+      gridInputs[gi].value = chunk[gi];
+    }
+
+    // Banner
+    var batchLabel = totalBatches > 1
+      ? ' \u2014 batch ' + (batchNum + 1) + ' of ' + totalBatches
+      : '';
+    var banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#0a2a0a;' +
+      'border-bottom:1px solid #1a8c1a;color:#55ffff;' +
+      'font-family:"IBM Plex Mono",monospace;font-size:12px;padding:5px 12px;' +
+      'text-align:center;z-index:999;letter-spacing:1px;';
+    banner.textContent = chunk.length + ' number(s) loaded' + batchLabel +
+      ' \u2014 press ENTER to submit' +
+      (hasMore ? ', then ENTER again to load next batch' : '');
+    document.body.appendChild(banner);
+
+    // After submit, if more batches remain, next ENTER/F5 reloads for batch N+1
+    if (hasMore) {
+      document.addEventListener('keydown', function onPostSubmit(e) {
+        if (!operationComplete) return;
+        if (e.key === 'Enter' || e.key === 'F5') {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          document.removeEventListener('keydown', onPostSubmit, true);
+          location.href = location.pathname +
+            '?nums=' + encodeURIComponent(raw) +
+            '&batch=' + (batchNum + 1);
+        }
+      }, true);
+    }
+
+    // Focus first grid input
+    setTimeout(function() {
+      if (gridInputs[0]) gridInputs[0].focus();
+    }, 150);
+  })();
+
+
     setTimeout(function() {
       var active = document.activeElement;
       if (!active || active.tagName !== 'INPUT') {
