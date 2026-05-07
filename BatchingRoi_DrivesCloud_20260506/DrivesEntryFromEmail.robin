@@ -1,0 +1,198 @@
+SET BatchSubjectPrefix = "DRIVES Batching -"
+
+# ─────────────────────────────────────────────────────────────────
+# 1. READ THE TRIGGER EMAIL FROM OUTLOOK
+#    Find the most recent unread email in your inbox whose subject
+#    starts with the batch prefix sent by the cloud flow.
+# ─────────────────────────────────────────────────────────────────
+Outlook.Launch Instance=> OutlookInstance
+
+Outlook.GetMessages.GetMessagesFromAccountFolder Instance: OutlookInstance Account: "zakary.masters@transport.nsw.gov.au" MailFolder: "Inbox" RetrieveOnlyUnread: True Messages=> InboxMessages
+
+SET BatchEmail = $'''{}'''
+SET BatchEmailFound = False
+
+FOR EACH Message IN InboxMessages
+    IF (Message.Subject CONTAINS BatchSubjectPrefix) THEN
+        SET BatchEmail = Message
+        SET BatchEmailFound = True
+        BREAK
+    END
+END
+
+IF BatchEmailFound = False THEN
+    Display.ShowMessageDialog.ShowMessage Title: "DRIVES Batch Entry" Message: "No unread batch email found in your inbox. Run the cloud flow first." Icon: Display.Icon.Warning Buttons: Display.Buttons.OK
+    STOP
+END
+
+# ─────────────────────────────────────────────────────────────────
+# 2. EXTRACT THE NUMBER LIST FROM THE EMAIL BODY
+#    The cloud flow puts numbers in a <pre>…</pre> block, one per line.
+# ─────────────────────────────────────────────────────────────────
+SET EmailBody = BatchEmail.Body
+
+Text.GetSubtext.GetSubtextBetween Text: EmailBody StartText: "<pre" EndText: "</pre>" IgnoreCase: True Result=> PreBlock
+
+# Strip the opening tag (everything up to and including the first >)
+Text.GetSubtext.GetSubtextAfter Text: PreBlock SubtextToFind: ">" IgnoreCase: False Result=> NumbersRaw
+
+# Normalise line endings and split
+Text.Replace Text: NumbersRaw TextToFind: "\r\n" IsRegExp: False IgnoreCase: False ReplaceWith: "\n" ActivateEscapeSequences: True Result=> NumbersNormalised
+Text.Replace Text: NumbersNormalised TextToFind: "\r" IsRegExp: False IgnoreCase: False ReplaceWith: "\n" ActivateEscapeSequences: True Result=> NumbersNormalised2
+Text.SplitText.SplitByDelimiter Text: NumbersNormalised2 CustomDelimiter: "\n" SplitTextIntoList=> NumberList
+
+# Remove any empty/whitespace entries
+Variables.CreateNewList List=> CleanNumbers
+FOR EACH RawNum IN NumberList
+    Text.TrimText.TrimAll Text: RawNum TrimmedText=> Trimmed
+    IF (Trimmed <> "") THEN
+        Variables.AddItemToList Item: Trimmed List: CleanNumbers
+    END
+END
+
+IF (CleanNumbers.Count = 0) THEN
+    Display.ShowMessageDialog.ShowMessage Title: "DRIVES Batch Entry" Message: "The batch email was found but contained no numbers." Icon: Display.Icon.Warning Buttons: Display.Buttons.OK
+    STOP
+END
+
+Display.ShowMessageDialog.ShowMessage Title: "DRIVES Batch Entry" Message: "Ready to enter %CleanNumbers.Count% number(s) into DRIVES.\n\nMake sure:\n  1. DRIVES Java terminal is open\n  2. You are on the Main Menu (screen 0)\n\nClick OK to begin." Icon: Display.Icon.Information Buttons: Display.Buttons.OKCancel ButtonPressed=> StartConfirm
+
+IF StartConfirm = "Cancel" THEN
+    STOP
+END
+
+# ─────────────────────────────────────────────────────────────────
+# 3. FOCUS THE DRIVES TERMINAL WINDOW
+#    Update the window title below to match your actual DRIVES window.
+# ─────────────────────────────────────────────────────────────────
+Windows.Focus.FocusWindow Title: "DRIVES" Exact: False
+
+# ─────────────────────────────────────────────────────────────────
+# 4. NAVIGATE TO THE BATCH DRIVING RECORD REQUEST SCREEN
+#    Sequence: 3 → Enter → 5 → Enter → 14 → Enter → 7 → Enter
+# ─────────────────────────────────────────────────────────────────
+# Screen 0: Main Menu → Record Services
+Input.SendKeys.FocusAndSendKeys Text: "3{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# Screen 1: Record Services → Batch Operations
+Input.SendKeys.FocusAndSendKeys Text: "5{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# Screen 2: Batch Operations → Batch Driving Record
+Input.SendKeys.FocusAndSendKeys Text: "14{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# Screen 3: Batch Driving Record → Batch Driving Record Request
+Input.SendKeys.FocusAndSendKeys Text: "7{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# ─────────────────────────────────────────────────────────────────
+# 5. FILL THE HEADER: Y → (auto-advance) → N → (auto-advance) → Enter
+#    (opens the email selection screen)
+#    Y = Standard Driving Record Request
+#    N = Traffic Record Section 12 Request
+#    Enter on Email pdf field → screen 5
+# ─────────────────────────────────────────────────────────────────
+# Type Y — auto-advances to field 1
+Input.SendKeys.FocusAndSendKeys Text: "Y" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.2
+
+# Type N — auto-advances to Email pdf field
+Input.SendKeys.FocusAndSendKeys Text: "N" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.2
+
+# Press Enter on Email pdf field → opens TRAFFIC_REC_EMAIL selector
+Input.SendKeys.FocusAndSendKeys Text: "{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# ─────────────────────────────────────────────────────────────────
+# 6. SELECT EMAIL ON SCREEN 5
+#    Tab to Sel field → type X → F5 to return
+# ─────────────────────────────────────────────────────────────────
+# Tab past "Start List At Value" to the Sel field
+Input.SendKeys.FocusAndSendKeys Text: "{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.2
+
+# Type X to select the CAU email row
+Input.SendKeys.FocusAndSendKeys Text: "X" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.1
+
+# F5 to return to batch form with email populated
+Input.SendKeys.FocusAndSendKeys Text: "{F5}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+System.Wait.Wait WaitForSeconds: 0.4
+
+# ─────────────────────────────────────────────────────────────────
+# 7. ENTER THE NUMBERS INTO THE GRID
+#    The form has 15 rows × 6 columns = 90 cells, maxlength 8.
+#    8-char numbers auto-advance to the next cell.
+#    7-char (and 6-char alphanumeric) need an explicit Tab.
+#    After all numbers for this batch, press Enter to submit.
+#    If there are more than 90 numbers, loop: F5 backs to menu 3,
+#    then navigate back in and repeat.
+# ─────────────────────────────────────────────────────────────────
+SET MaxPerScreen = 90
+SET Offset = 0
+SET TotalNumbers = CleanNumbers.Count
+
+LOOP WHILE Offset < TotalNumbers
+
+    SET Batch = 0
+
+    LOOP WHILE (Batch < MaxPerScreen) AND ((Offset + Batch) < TotalNumbers)
+        SET Num = CleanNumbers[Offset + Batch]
+        SET NumLen = Num.Length
+
+        IF (NumLen = 8) THEN
+            # 8 chars: type and let the form auto-advance
+            Input.SendKeys.FocusAndSendKeys Text: "%Num%" DelayBetweenKeystrokes: 50 SendTextAsHardwareKeys: False
+        ELSE
+            # 7-char pure digit or 6-char alphanumeric: type then Tab to advance
+            Input.SendKeys.FocusAndSendKeys Text: "%Num%{Tab}" DelayBetweenKeystrokes: 50 SendTextAsHardwareKeys: False
+        END
+
+        System.Wait.Wait WaitForSeconds: 0.05
+        SET Batch += 1
+    END
+
+    # Submit this screenful
+    Input.SendKeys.FocusAndSendKeys Text: "{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+    System.Wait.Wait WaitForSeconds: 1
+
+    SET Offset = Offset + Batch
+
+    IF Offset < TotalNumbers THEN
+        # More numbers remain — press F5 to return to screen 3, then re-navigate to the form
+        Input.SendKeys.FocusAndSendKeys Text: "{F5}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.5
+
+        # Back to screen 3, navigate to screen 4 again
+        Input.SendKeys.FocusAndSendKeys Text: "7{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.5
+
+        # Header
+        Input.SendKeys.FocusAndSendKeys Text: "Y" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.2
+        Input.SendKeys.FocusAndSendKeys Text: "N" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.2
+        Input.SendKeys.FocusAndSendKeys Text: "{Return}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.5
+
+        # Email select
+        Input.SendKeys.FocusAndSendKeys Text: "{Tab}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.2
+        Input.SendKeys.FocusAndSendKeys Text: "X" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.1
+        Input.SendKeys.FocusAndSendKeys Text: "{F5}" DelayBetweenKeystrokes: 100 SendTextAsHardwareKeys: False
+        System.Wait.Wait WaitForSeconds: 0.5
+    END
+END
+
+# ─────────────────────────────────────────────────────────────────
+# 8. MARK THE TRIGGER EMAIL AS READ
+# ─────────────────────────────────────────────────────────────────
+Outlook.MarkEmailAsReadOrUnread.MarkAsRead Instance: OutlookInstance Message: BatchEmail
+
+Outlook.Close Instance: OutlookInstance
+
+Display.ShowMessageDialog.ShowMessage Title: "DRIVES Batch Entry Complete" Message: "All %TotalNumbers% number(s) submitted to DRIVES successfully." Icon: Display.Icon.Information Buttons: Display.Buttons.OK
