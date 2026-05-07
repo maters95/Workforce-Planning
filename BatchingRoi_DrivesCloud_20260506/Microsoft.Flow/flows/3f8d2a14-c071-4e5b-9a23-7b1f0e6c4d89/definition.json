@@ -121,33 +121,43 @@
                   "type": "Compose",
                   "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(toLower(trim(coalesce(items('Apply_to_each_Message')?['subject'], ''))),'(',' '),')',' '),',',' '),'-',' '),'/',' '),':',' '),'.',' '),';',' '),'#',' ')"
                 },
-                "Select_Tokens": {
+                "Compose_TokenArray": {
                   "runAfter": {
                     "Compose_SubjectClean": ["Succeeded"]
                   },
+                  "type": "Compose",
+                  "inputs": "@split(outputs('Compose_SubjectClean'), ' ')"
+                },
+                "Select_Indexed_Tokens": {
+                  "runAfter": {
+                    "Compose_TokenArray": ["Succeeded"]
+                  },
                   "type": "Select",
                   "inputs": {
-                    "from": "@split(outputs('Compose_SubjectClean'), ' ')",
-                    "select": "@if(and(greaterOrEquals(length(trim(item())),8),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(item()),sub(length(trim(item())),8),8),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(item()),sub(length(trim(item())),8),8),if(and(greaterOrEquals(length(trim(item())),7),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(item()),sub(length(trim(item())),7),7),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(item()),sub(length(trim(item())),7),7),trim(item())))"
+                    "from": "@range(0, length(outputs('Compose_TokenArray')))",
+                    "select": {
+                      "tok": "@if(and(greaterOrEquals(length(trim(outputs('Compose_TokenArray')[item()])),8),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(outputs('Compose_TokenArray')[item()]),sub(length(trim(outputs('Compose_TokenArray')[item()])),8),8),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(outputs('Compose_TokenArray')[item()]),sub(length(trim(outputs('Compose_TokenArray')[item()])),8),8),if(and(greaterOrEquals(length(trim(outputs('Compose_TokenArray')[item()])),7),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(trim(outputs('Compose_TokenArray')[item()]),sub(length(trim(outputs('Compose_TokenArray')[item()])),7),7),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),substring(trim(outputs('Compose_TokenArray')[item()]),sub(length(trim(outputs('Compose_TokenArray')[item()])),7),7),trim(outputs('Compose_TokenArray')[item()])))",
+                      "prev": "@if(greater(item(), 0), trim(outputs('Compose_TokenArray')[sub(item(), 1)]), '')"
+                    }
                   }
                 },
-                "Filter_Valid_Tokens": {
+                "Filter_Valid_Non_Ref_Tokens": {
                   "runAfter": {
-                    "Select_Tokens": ["Succeeded"]
+                    "Select_Indexed_Tokens": ["Succeeded"]
                   },
                   "type": "Query",
                   "inputs": {
-                    "from": "@body('Select_Tokens')",
-                    "where": "@or(and(greater(length(item()),0),or(equals(length(item()),7),equals(length(item()),8)),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(item(),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),and(equals(length(item()),6),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item(),0,4),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ),not(equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item(),4,2),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ))),and(equals(length(item()),6),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item(),0,5),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ),not(equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item(),5,1),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ))))"
+                    "from": "@body('Select_Indexed_Tokens')",
+                    "where": "@and(not(equals(item()?['prev'], 'ref')), or(and(or(equals(length(item()?['tok']),7),equals(length(item()?['tok']),8)),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(item()?['tok'],'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'')),and(equals(length(item()?['tok']),6),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item()?['tok'],0,4),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ),not(equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item()?['tok'],4,2),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ))),and(equals(length(item()?['tok']),6),equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item()?['tok'],0,5),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' ),not(equals(trim(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(substring(item()?['tok'],5,1),'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')),'' )))))"
                   }
                 },
                 "Condition_Has_Valid_Token": {
                   "runAfter": {
-                    "Filter_Valid_Tokens": ["Succeeded"]
+                    "Filter_Valid_Non_Ref_Tokens": ["Succeeded"]
                   },
                   "type": "If",
                   "expression": {
-                    "and": [{"greater": ["@length(body('Filter_Valid_Tokens'))", 0]}]
+                    "and": [{"greater": ["@length(body('Filter_Valid_Non_Ref_Tokens'))", 0]}]
                   },
                   "actions": {
                     "Append_First_Valid_Number": {
@@ -155,7 +165,7 @@
                       "type": "AppendToArrayVariable",
                       "inputs": {
                         "name": "varNumbersRaw",
-                        "value": "@first(body('Filter_Valid_Tokens'))"
+                        "value": "@first(body('Filter_Valid_Non_Ref_Tokens'))?['tok']"
                       }
                     }
                   },
