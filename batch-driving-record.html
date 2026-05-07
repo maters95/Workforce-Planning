@@ -765,6 +765,13 @@
   /* ===== BLOCK ALL MOUSE INTERACTION ===== */
   document.querySelector('.terminal').addEventListener('mousedown', function(e) {
     e.preventDefault();
+    // Explicitly re-focus the active screen's first input so that a programmatic
+    // hardware mouse click from VBA reliably gives DOM focus to the terminal input.
+    var screen = document.querySelector('.screen.active');
+    if (screen) {
+      var input = screen.querySelector('input');
+      if (input) input.focus();
+    }
   });
 
   /* ===== GLOBAL F-KEY CAPTURE ===== */
@@ -780,9 +787,9 @@
 
   showScreen(0);
 
-  // Fallback: if Edge didn't restore focus to a page input on window focus,
-  // find the active screen's first input and focus it.
-  window.addEventListener('focus', function() {
+  // Re-focus the active input when the page/document regains focus.
+  // Listening on document is more reliable than window in Edge/Chromium.
+  function refocusActiveInput() {
     setTimeout(function() {
       var active = document.activeElement;
       if (!active || active.tagName !== 'INPUT') {
@@ -793,6 +800,11 @@
         }
       }
     }, 100);
+  }
+  document.addEventListener('focus', refocusActiveInput, true);
+  window.addEventListener('focus', refocusActiveInput);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) refocusActiveInput();
   });
 })();
 </script>

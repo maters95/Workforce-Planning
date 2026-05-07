@@ -1,18 +1,31 @@
 Option Explicit
 
-' keybd_event injects hardware-level keystrokes — works with Edge/Chrome.
-' WScript.Shell.SendKeys does NOT work with Chromium browsers (blocked at message level).
+' keybd_event  — hardware keystroke injection (works with Edge/Chromium)
+' mouse_event  — hardware mouse injection (used to set DOM focus inside Edge)
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
     Private Declare PtrSafe Sub keybd_event Lib "user32" _
         (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long)
+    Private Declare PtrSafe Sub mouse_event Lib "user32" _
+        (ByVal dwFlags As Long, ByVal dx As Long, ByVal dy As Long, ByVal cButtons As Long, ByVal dwExtraInfo As Long)
+    Private Declare PtrSafe Function SetCursorPos Lib "user32" (ByVal x As Long, ByVal y As Long) As Long
+    Private Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
 #Else
     Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
     Private Declare Sub keybd_event Lib "user32" _
         (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long)
+    Private Declare Sub mouse_event Lib "user32" _
+        (ByVal dwFlags As Long, ByVal dx As Long, ByVal dy As Long, ByVal cButtons As Long, ByVal dwExtraInfo As Long)
+    Private Declare Function SetCursorPos Lib "user32" (ByVal x As Long, ByVal y As Long) As Long
+    Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
 #End If
 
-Private Const KEYEVENTF_KEYUP As Long = &H2
+Private Const KEYEVENTF_KEYUP      As Long = &H2
+Private Const MOUSEEVENTF_LEFTDOWN As Long = &H2
+Private Const MOUSEEVENTF_LEFTUP   As Long = &H4
+Private Const SM_CXSCREEN          As Long = 0
+Private Const SM_CYSCREEN          As Long = 1
+
 Private Const VK_RETURN As Byte = &HD
 Private Const VK_TAB    As Byte = &H9
 Private Const VK_F5     As Byte = &H74
@@ -30,6 +43,20 @@ Private Const TEST_TITLE   As String  = "Test Terminal"
 ' Module-level so helpers can see them
 Private m_wsh    As Object
 Private m_target As String
+
+' Click the centre of the screen — lands on the terminal, triggering our
+' mousedown handler which explicitly calls input.focus() on the active input.
+Private Sub ClickCenter()
+    Dim cx As Long, cy As Long
+    cx = GetSystemMetrics(SM_CXSCREEN) \ 2
+    cy = GetSystemMetrics(SM_CYSCREEN) \ 2
+    SetCursorPos cx, cy
+    Sleep 80
+    mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
+    Sleep 50
+    mouse_event MOUSEEVENTF_LEFTUP, 0, 0, 0, 0
+    Sleep 200
+End Sub
 
 ' Press and release one virtual key at hardware level
 Private Sub PressVK(vk As Byte)
@@ -217,7 +244,12 @@ Public Sub DrivesEntry()
         Exit Sub
     End If
 
-    Sleep 600   ' let the window settle before sending keystrokes
+    Sleep 600   ' let Edge settle
+
+    ' Click centre of screen — our HTML mousedown handler calls input.focus()
+    ' which is the only reliable way to get DOM focus into Edge from VBA.
+    ClickCenter
+    Sleep 300
 
     ' ── 5. NAVIGATE TO BATCH DRIVING RECORD REQUEST SCREEN ───────
     NavTo "3",  400
