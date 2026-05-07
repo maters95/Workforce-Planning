@@ -780,13 +780,20 @@
 
   showScreen(0);
 
-  // Re-focus the active input whenever the browser window regains OS focus
-  // (needed when AppActivate is called from an external macro like VBA)
+  // Re-focus the active input whenever the browser window regains OS focus.
+  // setTimeout defers until Chromium has finished its own focus processing
+  // (calling .focus() synchronously inside window.focus is blocked in Edge/Chrome).
   window.addEventListener('focus', function() {
-    var screen = document.querySelector('.screen.active');
-    if (!screen) return;
-    var activeInput = screen.querySelector('input');
-    if (activeInput) activeInput.focus();
+    setTimeout(function() {
+      var screen = document.querySelector('.screen.active');
+      if (!screen) return;
+      var active = document.activeElement;
+      // Only override if no terminal input already has focus
+      if (!active || active.tagName !== 'INPUT' || !screen.contains(active)) {
+        var input = screen.querySelector('input');
+        if (input) input.focus();
+      }
+    }, 150);
   });
 })();
 </script>
