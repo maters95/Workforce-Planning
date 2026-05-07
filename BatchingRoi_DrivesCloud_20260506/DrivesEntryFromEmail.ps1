@@ -1,6 +1,16 @@
 Add-Type -AssemblyName System.Windows.Forms
 
 # ─────────────────────────────────────────────────────────────────
+# TEST MODE
+#   $true  → opens batch-driving-record.html in your browser and
+#            sends keystrokes there (window title: "Test Terminal")
+#   $false → targets the real DRIVES Java terminal (window title: "DRIVES")
+# ─────────────────────────────────────────────────────────────────
+$testMode       = $true
+$testHtmlPath   = "file:///C:/Users/zmasters1/Downloads/batch-driving-record.html"
+$drivesWindow   = if ($testMode) { "Test Terminal" } else { "DRIVES" }
+
+# ─────────────────────────────────────────────────────────────────
 # 1. FIND THE BATCH EMAIL IN OUTLOOK INBOX
 # ─────────────────────────────────────────────────────────────────
 $outlook = New-Object -ComObject Outlook.Application
@@ -58,15 +68,21 @@ $result = [System.Windows.Forms.MessageBox]::Show(
 if ($result -eq "Cancel") { exit }
 
 # ─────────────────────────────────────────────────────────────────
-# 4. FOCUS THE DRIVES WINDOW
-#    Change "DRIVES" below if your window title is different.
+# 4. FOCUS THE TARGET WINDOW
 # ─────────────────────────────────────────────────────────────────
 $wsh = New-Object -ComObject WScript.Shell
-$wsh.AppActivate("DRIVES") | Out-Null
+
+if ($testMode) {
+    # Open the HTML test page in the default browser then wait for it to load
+    Start-Process $testHtmlPath
+    Start-Sleep -Milliseconds 2000
+}
+
+$wsh.AppActivate($drivesWindow) | Out-Null
 Start-Sleep -Milliseconds 600
 
 function Send-Keys($keys, [int]$waitMs = 400) {
-    $wsh.AppActivate("DRIVES") | Out-Null
+    $wsh.AppActivate($drivesWindow) | Out-Null
     $wsh.SendKeys($keys)
     Start-Sleep -Milliseconds $waitMs
 }
