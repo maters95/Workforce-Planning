@@ -1,11 +1,21 @@
 Option Explicit
 
-' Millisecond-precision sleep (works on all modern Office installs)
+' keybd_event injects hardware-level keystrokes — works with Edge/Chrome.
+' WScript.Shell.SendKeys does NOT work with Chromium browsers (blocked at message level).
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Private Declare PtrSafe Sub keybd_event Lib "user32" _
+        (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long)
 #Else
     Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+    Private Declare Sub keybd_event Lib "user32" _
+        (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As Long, ByVal dwExtraInfo As Long)
 #End If
+
+Private Const KEYEVENTF_KEYUP As Long = &H2
+Private Const VK_RETURN As Byte = &HD
+Private Const VK_TAB    As Byte = &H9
+Private Const VK_F5     As Byte = &H74
 
 ' ─────────────────────────────────────────────────────────────────
 ' TEST MODE
@@ -17,13 +27,53 @@ Private Const TEST_HTML    As String  = "file:///C:/Users/zmasters1/Downloads/ba
 Private Const DRIVES_TITLE As String  = "DRIVES"
 Private Const TEST_TITLE   As String  = "Test Terminal"
 
-' Module-level so SK helper can see them
+' Module-level so helpers can see them
 Private m_wsh    As Object
 Private m_target As String
 
-Private Sub SK(keys As String, waitMs As Long)
-    m_wsh.AppActivate m_target
-    m_wsh.SendKeys keys
+' Press and release one virtual key at hardware level
+Private Sub PressVK(vk As Byte)
+    keybd_event vk, 0, 0, 0
+    Sleep 20
+    keybd_event vk, 0, KEYEVENTF_KEYUP, 0
+    Sleep 20
+End Sub
+
+' Type each alphanumeric character as hardware keystrokes
+Private Sub TypeText(s As String)
+    Dim i As Long, c As String, vk As Byte, ok As Boolean
+    For i = 1 To Len(s)
+        c = UCase(Mid(s, i, 1))
+        ok = True
+        Select Case c
+            Case "0" To "9" : vk = CByte(Asc(c))   ' 0x30-0x39
+            Case "A" To "Z" : vk = CByte(Asc(c))   ' 0x41-0x5A
+            Case Else        : ok = False
+        End Select
+        If ok Then PressVK vk
+        Sleep 30
+    Next i
+End Sub
+
+' Activate window, type text only, then wait
+Private Sub TextTo(text As String, waitMs As Long)
+    m_wsh.AppActivate m_target : Sleep 80
+    TypeText text
+    Sleep waitMs
+End Sub
+
+' Activate window, type text then Enter, then wait
+Private Sub NavTo(text As String, waitMs As Long)
+    m_wsh.AppActivate m_target : Sleep 80
+    TypeText text : Sleep 30
+    PressVK VK_RETURN
+    Sleep waitMs
+End Sub
+
+' Activate window, press a single special key, then wait
+Private Sub KeyTo(vk As Byte, waitMs As Long)
+    m_wsh.AppActivate m_target : Sleep 80
+    PressVK vk
     Sleep waitMs
 End Sub
 
@@ -167,25 +217,26 @@ Public Sub DrivesEntry()
         Exit Sub
     End If
 
-    Sleep 1000  ' wait for Edge to restore DOM focus to the page input
+    Sleep 600   ' let the window settle before sending keystrokes
 
     ' ── 5. NAVIGATE TO BATCH DRIVING RECORD REQUEST SCREEN ───────
-    SK "3~",  400
-    SK "5~",  400
-    SK "14~", 400
-    SK "7~",  400
+    NavTo "3",  400
+    NavTo "5",  400
+    NavTo "14", 400
+    NavTo "7",  400
 
     ' ── 6. HEADER: Y → N → Y → Enter ────────────────────────────
-    SK "Y", 200
-    SK "N", 200
-    SK "Y", 200
-    SK "~", 500
+    TextTo "Y", 200
+    TextTo "N", 200
+    TextTo "Y", 200
+    KeyTo VK_RETURN, 500
 
     ' ── 7. EMAIL SELECT: Tab → S → F5 → Tab → Tab ───────────────
-    SK "{TAB}",      200
-    SK "S",          200
-    SK "{F5}",       500
-    SK "{TAB}{TAB}", 200
+    KeyTo VK_TAB,    200
+    TextTo "S",      200
+    KeyTo VK_F5,     500
+    KeyTo VK_TAB,    100
+    KeyTo VK_TAB,    200
 
     ' ── 8. TYPE NUMBERS INTO GRID ────────────────────────────────
     Dim maxPerScreen As Long : maxPerScreen = 90
@@ -199,31 +250,30 @@ Public Sub DrivesEntry()
         batch = 0
         Do While batch < maxPerScreen And (offset + batch) < total
             num = numbers(offset + batch)
-            If Len(num) = 8 Then
-                m_wsh.SendKeys num          ' auto-advances
-            Else
-                m_wsh.SendKeys num & "{TAB}"  ' manual advance
-            End If
+            m_wsh.AppActivate m_target : Sleep 50
+            TypeText num
+            If Len(num) < 8 Then PressVK VK_TAB
             Sleep 60
             batch = batch + 1
         Loop
 
-        SK "~", 1200   ' Enter + wait for screen to process
+        KeyTo VK_RETURN, 1200   ' submit screenful
 
         offset = offset + batch
 
         If offset < total Then
             ' Overflow — re-navigate for next screenful
-            SK "{F5}",       600
-            SK "7~",         600
-            SK "Y",          200
-            SK "N",          200
-            SK "Y",          200
-            SK "~",          600
-            SK "{TAB}",      200
-            SK "S",          200
-            SK "{F5}",       600
-            SK "{TAB}{TAB}", 200
+            KeyTo VK_F5,     600
+            NavTo "7",       600
+            TextTo "Y",      200
+            TextTo "N",      200
+            TextTo "Y",      200
+            KeyTo VK_RETURN, 600
+            KeyTo VK_TAB,    200
+            TextTo "S",      200
+            KeyTo VK_F5,     600
+            KeyTo VK_TAB,    100
+            KeyTo VK_TAB,    200
         End If
 
     Loop
