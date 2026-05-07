@@ -1,10 +1,12 @@
 Option Explicit
 
-' TEST_MODE = True  → numbers passed to HTML page via URL query string.
-'                     Edge auto-fills the form. User presses ENTER once to submit.
-'                     No keystrokes sent from VBA at all.
-' TEST_MODE = False → keybd_event hardware keystrokes sent to DRIVES Java terminal.
-'                     (Java terminals accept OS-level hardware injection unlike Edge.)
+' JAVA_TEST_MODE = True  → keybd_event hardware keystrokes sent to TestTerminal.java
+'                          (same keystroke path as real DRIVES, safe test target).
+'                          Compile and run: javac TestTerminal.java && java TestTerminal
+' TEST_MODE = True        → numbers passed to HTML page via URL query string.
+'                          Edge auto-fills the form. User presses ENTER once.
+'                          No keystrokes sent from VBA at all.
+' Both False              → keybd_event hardware keystrokes sent to real DRIVES terminal.
 
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep       Lib "kernel32" (ByVal ms As Long)
@@ -16,9 +18,11 @@ Option Explicit
         (ByVal vk As Byte, ByVal scan As Byte, ByVal flags As Long, ByVal extra As Long)
 #End If
 
-Private Const TEST_MODE    As Boolean = True
-Private Const TEST_HTML    As String  = "file:///C:/Users/zmasters1/Downloads/batch-driving-record.html"
-Private Const DRIVES_TITLE As String  = "DRIVES"
+Private Const JAVA_TEST_MODE As Boolean = True
+Private Const JAVA_TITLE     As String  = "Test Terminal"
+Private Const TEST_MODE      As Boolean = False
+Private Const TEST_HTML      As String  = "file:///C:/Users/zmasters1/Downloads/batch-driving-record.html"
+Private Const DRIVES_TITLE   As String  = "DRIVES"
 
 Private Const KEYEVENTF_KEYUP As Long = &H2
 Private Const VK_RETURN       As Byte = &HD
@@ -133,7 +137,11 @@ Public Sub DrivesEntry()
 
     ' ── 3. CONFIRM ───────────────────────────────────────────────
     Dim confirmMsg As String
-    If TEST_MODE Then
+    If JAVA_TEST_MODE Then
+        confirmMsg = n & " number(s) found." & vbCrLf & vbCrLf & _
+                     "Make sure TestTerminal.java is running." & vbCrLf & _
+                     "Click OK to begin entering numbers into the Java test terminal."
+    ElseIf TEST_MODE Then
         confirmMsg = n & " number(s) found." & vbCrLf & vbCrLf & _
                      "Click OK to open the test terminal in Edge." & vbCrLf & _
                      "The form will be pre-filled — press ENTER to submit."
@@ -147,8 +155,8 @@ Public Sub DrivesEntry()
         Exit Sub
     End If
 
-    ' ── 4A. TEST MODE: open HTML with numbers pre-filled via URL ─
-    If TEST_MODE Then
+    ' ── 4A. HTML TEST MODE: open HTML with numbers pre-filled via URL ─
+    If TEST_MODE And Not JAVA_TEST_MODE Then
 
         Dim numsStr As String
         For i = 0 To n - 1
@@ -167,11 +175,15 @@ Public Sub DrivesEntry()
                "The form is pre-filled — press ENTER to submit.", _
                vbInformation, "DRIVES Batch Entry"
 
-    ' ── 4B. DRIVES MODE: hardware keystrokes into Java terminal ──
+    ' ── 4B / 4C. keybd_event mode: Java test terminal or real DRIVES ──
     Else
 
         Set m_wsh  = CreateObject("WScript.Shell")
-        m_target   = DRIVES_TITLE
+        If JAVA_TEST_MODE Then
+            m_target = JAVA_TITLE
+        Else
+            m_target = DRIVES_TITLE
+        End If
 
         Application.WindowState = xlMinimized
         Sleep 300
@@ -186,8 +198,8 @@ Public Sub DrivesEntry()
 
         If Not focused Then
             Application.WindowState = xlNormal
-            MsgBox "Could not find DRIVES window: """ & DRIVES_TITLE & """." & vbCrLf & _
-                   "Make sure DRIVES is open.", vbExclamation, "DRIVES Batch Entry"
+            MsgBox "Could not find window: """ & m_target & """." & vbCrLf & _
+                   "Make sure it is open and visible.", vbExclamation, "DRIVES Batch Entry"
             Exit Sub
         End If
 
