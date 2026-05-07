@@ -133,23 +133,32 @@ Public Sub DrivesEntry()
     ' ── 4. FOCUS TARGET WINDOW ───────────────────────────────────
     Set m_wsh = CreateObject("WScript.Shell")
 
-    If TEST_MODE Then
-        Shell "cmd /c start """" """ & TEST_HTML & """", vbHide
-        Sleep 3000
-    End If
-
     ' Minimise Excel so Windows focus-stealing prevention doesn't block AppActivate
     Application.WindowState = xlMinimized
-    Sleep 500
+    Sleep 300
 
-    ' Retry AppActivate until the window responds (up to 10 seconds)
+    ' Try to focus the window — if not found and in test mode, launch the HTML page
     Dim focused As Boolean : focused = False
     Dim attempt As Long
-    For attempt = 1 To 20
-        focused = m_wsh.AppActivate(m_target)
-        If focused Then Exit For
-        Sleep 500
-    Next attempt
+
+    focused = m_wsh.AppActivate(m_target)
+
+    If Not focused And TEST_MODE Then
+        ' Window not open yet — launch it then wait for it to load
+        Shell "cmd /c start """" """ & TEST_HTML & """", vbHide
+        For attempt = 1 To 20
+            Sleep 500
+            focused = m_wsh.AppActivate(m_target)
+            If focused Then Exit For
+        Next attempt
+    ElseIf Not focused Then
+        ' DRIVES not found — retry a few times in case it's slow to respond
+        For attempt = 1 To 10
+            Sleep 500
+            focused = m_wsh.AppActivate(m_target)
+            If focused Then Exit For
+        Next attempt
+    End If
 
     If Not focused Then
         Application.WindowState = xlNormal
