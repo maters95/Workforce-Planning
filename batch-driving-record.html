@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  .terminal {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    min-height: 560px;
+    background: #0a0a0a;
+    border-radius: 8px;
+    border: 2px solid #1a1a1a;
+    padding: 20px 24px;
+    font-size: 13px;
+    color: #33ff33;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .scanlines {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+    z-index: 10;
+  }
+
+  .glow {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 120px rgba(0,40,0,0.3);
+    border-radius: 8px;
+    z-index: 11;
+  }
+
+  .screen { position: relative; z-index: 5; display: none; min-height: 500px; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  .title {
+    text-align: center;
+    color: #55ffff;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    text-shadow: 0 0 8px rgba(85,255,255,0.4);
+  }
+
+  .menu-items { flex: 1; padding: 0 40px; }
+
+  .menu-item {
+    color: #33ff33;
+    margin-bottom: 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .menu-item .num { color: #55ffff; display: inline-block; min-width: 30px; }
+
+  .prompt-area { margin-top: auto; padding-top: 20px; }
+
+  .prompt-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .prompt-label { color: #55ffff; white-space: nowrap; }
+
+  .prompt-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff33;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    caret-color: #33ff33;
+    width: 36px;
+    text-align: left;
+    padding: 0;
+    margin: 0;
+  }
+
+  .error-msg {
+    color: #ff5555;
+    font-size: 12px;
+    margin-bottom: 8px;
+    min-height: 16px;
+    text-shadow: 0 0 6px rgba(255,85,85,0.3);
+  }
+
+  .footer {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    color: #55ffff;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 6px rgba(85,255,255,0.3);
+  }
+
+  .status {
+    text-align: center;
+    color: #55ffff;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 6px rgba(85,255,255,0.3);
+    visibility: hidden;
+  }
+
+  .status.visible { visibility: visible; }
+
+  .label { color: #55ffff; white-space: nowrap; }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .header-group { display: flex; align-items: center; gap: 6px; }
+
+  .header-row-2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .header-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff33;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    caret-color: #33ff33;
+    width: 18px;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 0;
+    margin: 0;
+  }
+
+  .email-value {
+    color: #33ff33;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-left: 4px;
+  }
+
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 20px;
+  }
+
+  .grid-row { display: flex; justify-content: center; }
+
+  .grid-cell {
+    position: relative;
+    width: 80px;
+    height: 18px;
+    border-bottom: 1.5px solid #1a8c1a;
+    margin: 0 6px;
+    transition: border-color 0.15s;
+  }
+
+  .grid-cell.focused { border-color: #33ff33; }
+
+  .grid-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff33;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    caret-color: #33ff33;
+    text-transform: uppercase;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    padding: 0 2px;
+    margin: 0;
+  }
+
+  /* TRAFFIC_REC_EMAIL */
+  .sel-screen-content { flex: 1; padding: 0 20px; }
+
+  .sel-start-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .sel-start-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid #1a8c1a;
+    outline: none;
+    color: #33ff33;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    caret-color: #33ff33;
+    width: 100px;
+    padding: 0 2px;
+  }
+
+  .sel-start-input:focus { border-color: #33ff33; }
+
+  .sel-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    color: #55ffff;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .sel-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  .sel-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #33ff33;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    caret-color: #33ff33;
+    text-transform: uppercase;
+    width: 18px;
+    text-align: center;
+    padding: 0;
+    margin: 0;
+  }
+
+  @keyframes blink-caret {
+    0%, 100% { caret-color: #33ff33; }
+    50% { caret-color: transparent; }
+  }
+  input:focus { animation: blink-caret 1.06s step-end infinite; }
+
+  .terminal, .terminal input { cursor: default; }
+</style>
+</head>
+<body>
+<div class="terminal" oncontextmenu="return false">
+  <div class="scanlines"></div>
+  <div class="glow"></div>
+
+  <!-- SCREEN 0: Main Menu -->
+  <div class="screen active" id="screen0">
+    <div class="title">Test Terminal</div>
+    <div class="menu-items">
+      <div class="menu-item"><span class="num">1.</span> System Administration</div>
+      <div class="menu-item"><span class="num">2.</span> User Management</div>
+      <div class="menu-item"><span class="num">3.</span> Record Services</div>
+      <div class="menu-item"><span class="num">4.</span> Reporting &amp; Analytics</div>
+      <div class="menu-item"><span class="num">5.</span> Correspondence Management</div>
+      <div class="menu-item"><span class="num">6.</span> System Utilities</div>
+    </div>
+    <div class="prompt-area">
+      <div class="error-msg" id="err0"></div>
+      <div class="prompt-line">
+        <span class="prompt-label">Selection ==&gt;</span>
+        <input class="prompt-input" id="input0" maxlength="2" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="footer">
+        <span>F1 HELP</span><span>F3 MENU</span><span>F5 RETURN</span><span>F6 CLEAR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Record Services -->
+  <div class="screen" id="screen1">
+    <div class="title">Record Services</div>
+    <div class="menu-items">
+      <div class="menu-item"><span class="num">1.</span> Individual Record Lookup</div>
+      <div class="menu-item"><span class="num">2.</span> Record Amendment</div>
+      <div class="menu-item"><span class="num">3.</span> Record History</div>
+      <div class="menu-item"><span class="num">4.</span> Print Services</div>
+      <div class="menu-item"><span class="num">5.</span> Batch Operations</div>
+      <div class="menu-item"><span class="num">6.</span> Record Archive</div>
+    </div>
+    <div class="prompt-area">
+      <div class="error-msg" id="err1"></div>
+      <div class="prompt-line">
+        <span class="prompt-label">Selection ==&gt;</span>
+        <input class="prompt-input" id="input1" maxlength="2" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="footer">
+        <span>F1 HELP</span><span>F3 MENU</span><span>F5 RETURN</span><span>F6 CLEAR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Batch Operations (15 items) -->
+  <div class="screen" id="screen2">
+    <div class="title">Batch Operations</div>
+    <div class="menu-items">
+      <div class="menu-item"><span class="num">1.</span>  Batch Licence Verification</div>
+      <div class="menu-item"><span class="num">2.</span>  Batch Status Update</div>
+      <div class="menu-item"><span class="num">3.</span>  Batch Print Request</div>
+      <div class="menu-item"><span class="num">4.</span>  Batch Record Export</div>
+      <div class="menu-item"><span class="num">5.</span>  Batch Record Import</div>
+      <div class="menu-item"><span class="num">6.</span>  Batch Suspension Check</div>
+      <div class="menu-item"><span class="num">7.</span>  Batch Address Update</div>
+      <div class="menu-item"><span class="num">8.</span>  Batch Demerit Point Inquiry</div>
+      <div class="menu-item"><span class="num">9.</span>  Batch Registration Renewal</div>
+      <div class="menu-item"><span class="num">10.</span> Batch Penalty Notice</div>
+      <div class="menu-item"><span class="num">11.</span> Batch Medical Review</div>
+      <div class="menu-item"><span class="num">12.</span> Batch Interlock Audit</div>
+      <div class="menu-item"><span class="num">13.</span> Batch Fee Assessment</div>
+      <div class="menu-item"><span class="num">14.</span> Batch Driving Record</div>
+      <div class="menu-item"><span class="num">15.</span> Batch Correspondence</div>
+    </div>
+    <div class="prompt-area">
+      <div class="error-msg" id="err2"></div>
+      <div class="prompt-line">
+        <span class="prompt-label">Selection ==&gt;</span>
+        <input class="prompt-input" id="input2" maxlength="2" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="footer">
+        <span>F1 HELP</span><span>F3 MENU</span><span>F5 RETURN</span><span>F6 CLEAR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Batch Driving Record sub-menu -->
+  <div class="screen" id="screen3">
+    <div class="title">Batch Driving Record</div>
+    <div class="menu-items">
+      <div class="menu-item"><span class="num">1.</span> Standard Record — Individual</div>
+      <div class="menu-item"><span class="num">2.</span> Standard Record — Bulk Print</div>
+      <div class="menu-item"><span class="num">3.</span> Traffic Section 12 — Individual</div>
+      <div class="menu-item"><span class="num">4.</span> Traffic Section 12 — Bulk Print</div>
+      <div class="menu-item"><span class="num">5.</span> Combined Record — Individual</div>
+      <div class="menu-item"><span class="num">6.</span> Record Reprint Queue</div>
+      <div class="menu-item"><span class="num">7.</span> Batch Driving Record Request</div>
+      <div class="menu-item"><span class="num">8.</span> Batch Status Inquiry</div>
+    </div>
+    <div class="prompt-area">
+      <div class="error-msg" id="err3"></div>
+      <div class="prompt-line">
+        <span class="prompt-label">Selection ==&gt;</span>
+        <input class="prompt-input" id="input3" maxlength="2" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="footer">
+        <span>F1 HELP</span><span>F3 MENU</span><span>F5 RETURN</span><span>F6 CLEAR</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Batch Driving Record Request (form) -->
+  <div class="screen" id="screen4">
+    <div class="title">Batch Driving Record Request</div>
+
+    <div class="header-row">
+      <div class="header-group">
+        <span class="label">Standard Driving Record Request:</span>
+        <input class="header-input batch-header" data-order="0" value="" maxlength="1" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="header-group">
+        <span class="label">Traffic Record Section 12 Request:</span>
+        <input class="header-input batch-header" data-order="1" value="" maxlength="1" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div class="header-row-2">
+      <span class="label">Email pdf:</span>
+      <input class="header-input batch-header" data-order="2" value="" maxlength="1" autocomplete="off" spellcheck="false">
+      <span class="label" style="margin-left:12px">Email Address?</span>
+      <span class="email-value" id="emailDisplay"></span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="footer">
+      <span>F1 HELP</span><span>F3 MENU</span><span>F5 RETURN</span><span>F6 CLEAR</span>
+    </div>
+    <div class="status" id="batchStatus">The Operation has been successfully completed</div>
+  </div>
+
+  <!-- SCREEN 5: Select TRAFFIC_REC_EMAIL -->
+  <div class="screen" id="screen5">
+    <div class="title">Select TRAFFIC_REC_EMAIL</div>
+    <div class="sel-screen-content">
+      <div class="sel-start-row">
+        <span class="label">Start List At Value:</span>
+        <input class="sel-start-input" id="selStartInput" maxlength="30" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="sel-header">
+        <span style="width:18px">Sel</span>
+        <span>Value</span>
+      </div>
+
+      <div class="sel-row">
+        <input class="sel-input" id="selInput" maxlength="1" autocomplete="off" spellcheck="false">
+        <span style="color:#33ff33; letter-spacing:1px">CAU</span>
+        <span style="color:#33ff33; letter-spacing:1px; margin-left:24px">batchemail@mail.com</span>
+      </div>
+    </div>
+
+    <div class="prompt-area">
+      <div class="footer">
+        <span>F1 Help</span><span>F5 Return</span><span>F7 Prev</span><span>F8 Next</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var screens = [
+    document.getElementById('screen0'),
+    document.getElementById('screen1'),
+    document.getElementById('screen2'),
+    document.getElementById('screen3'),
+    document.getElementById('screen4'),
+    document.getElementById('screen5')
+  ];
+  var menuInputs = [
+    document.getElementById('input0'),
+    document.getElementById('input1'),
+    document.getElementById('input2'),
+    document.getElementById('input3')
+  ];
+  var errors = [
+    document.getElementById('err0'),
+    document.getElementById('err1'),
+    document.getElementById('err2'),
+    document.getElementById('err3')
+  ];
+
+  var validChoice = ['3', '5', '14', '7'];
+  var maxOption   = [6, 6, 15, 8];
+  var currentScreen = 0;
+  var emailSelected = false;
+  var emailValue = '';
+  var operationComplete = false;
+
+  var emailDisplay = document.getElementById('emailDisplay');
+  var batchStatus = document.getElementById('batchStatus');
+
+  function showScreen(idx) {
+    for (var i = 0; i < screens.length; i++) {
+      if (i === idx) screens[i].classList.add('active');
+      else screens[i].classList.remove('active');
+    }
+    currentScreen = idx;
+
+    if (idx < 4) {
+      menuInputs[idx].value = '';
+      errors[idx].textContent = '';
+      setTimeout(function() { menuInputs[idx].focus(); }, 50);
+    } else if (idx === 4) {
+      var first = document.querySelector('#screen4 [data-order="0"]');
+      if (first) setTimeout(function() { first.focus(); }, 50);
+    } else if (idx === 5) {
+      document.getElementById('selStartInput').value = '';
+      document.getElementById('selInput').value = '';
+      setTimeout(function() { document.getElementById('selStartInput').focus(); }, 50);
+    }
+  }
+
+  function resetBatchForm() {
+    formInputs.forEach(function(inp) { inp.value = ''; });
+    emailSelected = false;
+    emailValue = '';
+    emailDisplay.textContent = '';
+    operationComplete = false;
+    batchStatus.classList.remove('visible');
+  }
+
+  function blockClipboard(el) {
+    el.addEventListener('paste', function(e) { e.preventDefault(); });
+    el.addEventListener('copy', function(e) { e.preventDefault(); });
+    el.addEventListener('cut', function(e) { e.preventDefault(); });
+    el.addEventListener('drop', function(e) { e.preventDefault(); });
+  }
+
+  /* ===== MENU SCREENS (0-3) ===== */
+  for (var m = 0; m < menuInputs.length; m++) {
+    (function(idx) {
+      var input = menuInputs[idx];
+      blockClipboard(input);
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') { e.preventDefault(); return; }
+
+        if (e.key === 'F3' || e.key === 'F5') {
+          e.preventDefault();
+          if (idx > 0) showScreen(idx - 1);
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          var val = input.value.trim();
+          if (val === validChoice[idx]) {
+            errors[idx].textContent = '';
+            if (idx === 3) resetBatchForm();
+            showScreen(idx + 1);
+          } else if (val === '' || isNaN(val) || Number(val) < 1 || Number(val) > maxOption[idx]) {
+            errors[idx].textContent = 'Invalid selection. Enter a valid option number.';
+            input.value = '';
+          } else {
+            errors[idx].textContent = 'Function not available.';
+            input.value = '';
+          }
+          return;
+        }
+      });
+    })(m);
+  }
+
+  /* ===== BATCH FORM (SCREEN 4) ===== */
+  var ROWS = 15, COLS = 6, MAX = 8;
+  var gridEl = document.getElementById('grid');
+
+  for (var r = 0; r < ROWS; r++) {
+    var row = document.createElement('div');
+    row.className = 'grid-row';
+    for (var c = 0; c < COLS; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      var inp = document.createElement('input');
+      inp.className = 'grid-input';
+      inp.setAttribute('data-order', String(3 + r * COLS + c));
+      inp.setAttribute('maxlength', MAX);
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('autocorrect', 'off');
+      inp.setAttribute('autocapitalize', 'off');
+      inp.setAttribute('spellcheck', 'false');
+      cell.appendChild(inp);
+      row.appendChild(cell);
+    }
+    gridEl.appendChild(row);
+  }
+
+  var formInputs = Array.from(document.querySelectorAll('#screen4 [data-order]'))
+    .sort(function(a, b) { return Number(a.dataset.order) - Number(b.dataset.order); });
+
+  var headerInputs = formInputs.slice(0, 3);
+  var gridInputs = formInputs.slice(3);
+
+  function getIdx(el) { return formInputs.indexOf(el); }
+  function focusNext(el) { var i = getIdx(el); if (i >= 0 && i < formInputs.length - 1) formInputs[i + 1].focus(); }
+  function focusPrev(el) { var i = getIdx(el); if (i > 0) formInputs[i - 1].focus(); }
+
+  function handleBatchBack() {
+    resetBatchForm();
+    showScreen(3);
+  }
+
+  // Header inputs
+  headerInputs.forEach(function(input) {
+    blockClipboard(input);
+
+    input.addEventListener('input', function() {
+      input.value = input.value.toUpperCase();
+      if (input.value.length >= 1) {
+        var ord = Number(input.dataset.order);
+        if (ord < 2) {
+          focusNext(input);
+        }
+      }
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (operationComplete) { e.preventDefault(); return; }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var ord = Number(input.dataset.order);
+        if (e.shiftKey) {
+          focusPrev(input);
+        } else {
+          var ord = Number(input.dataset.order);
+          if (emailSelected && ord === 1) {
+            // After email selected, skip Email pdf field, go to grid
+            gridInputs[0].focus();
+          } else if (ord === 2 && emailSelected) {
+            gridInputs[0].focus();
+          } else {
+            focusNext(input);
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!emailSelected) {
+          // Go to email select screen
+          showScreen(5);
+        }
+        return;
+      }
+
+      if (e.key === 'F3' || e.key === 'F5') {
+        e.preventDefault();
+        handleBatchBack();
+        return;
+      }
+
+      if (e.key === 'Insert') { e.preventDefault(); return; }
+
+      if (input.value.length >= 1 &&
+          ['Backspace','Delete','ArrowLeft','ArrowRight','Home','End','Tab'].indexOf(e.key) === -1 &&
+          !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  // Grid inputs
+  gridInputs.forEach(function(input) {
+    blockClipboard(input);
+
+    input.addEventListener('focus', function() {
+      var cell = input.closest('.grid-cell');
+      if (cell) cell.classList.add('focused');
+    });
+    input.addEventListener('blur', function() {
+      var cell = input.closest('.grid-cell');
+      if (cell) cell.classList.remove('focused');
+    });
+
+    input.addEventListener('input', function() {
+      input.value = input.value.toUpperCase();
+      if (input.value.length >= MAX) focusNext(input);
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (operationComplete) { e.preventDefault(); return; }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) focusPrev(input); else focusNext(input);
+        return;
+      }
+      if (e.key === 'Insert') { e.preventDefault(); return; }
+      if (e.key === 'Backspace' && input.value === '') { e.preventDefault(); return; }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Check if at least one grid field has data
+        var hasData = gridInputs.some(function(inp) { return inp.value.trim() !== ''; });
+        if (hasData) {
+          operationComplete = true;
+          batchStatus.classList.add('visible');
+          // Blur all inputs
+          if (document.activeElement) document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (e.key === 'F3' || e.key === 'F5') {
+        e.preventDefault();
+        handleBatchBack();
+        return;
+      }
+
+      if (input.value.length >= MAX &&
+          ['Backspace','Delete','ArrowLeft','ArrowRight','Home','End','Tab'].indexOf(e.key) === -1 &&
+          !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  /* ===== TRAFFIC_REC_EMAIL SCREEN (5) ===== */
+  var selStartInput = document.getElementById('selStartInput');
+  var selInput = document.getElementById('selInput');
+
+  blockClipboard(selStartInput);
+  blockClipboard(selInput);
+
+  selStartInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (!e.shiftKey) selInput.focus();
+      return;
+    }
+    if (e.key === 'F5') {
+      e.preventDefault();
+      // Return to batch with email populated
+      emailSelected = true;
+      emailValue = 'batchemail@mail.com';
+      emailDisplay.textContent = emailValue;
+      showScreen(4);
+      return;
+    }
+    if (['F1','F3','F7','F8'].indexOf(e.key) !== -1) {
+      e.preventDefault();
+      return;
+    }
+  });
+
+  selInput.addEventListener('input', function() {
+    selInput.value = selInput.value.toUpperCase();
+  });
+
+  selInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) selStartInput.focus();
+      return;
+    }
+    if (e.key === 'F5') {
+      e.preventDefault();
+      emailSelected = true;
+      emailValue = 'batchemail@mail.com';
+      emailDisplay.textContent = emailValue;
+      showScreen(4);
+      return;
+    }
+    if (['F1','F3','F7','F8'].indexOf(e.key) !== -1) {
+      e.preventDefault();
+      return;
+    }
+  });
+
+  /* ===== BLOCK ALL MOUSE INTERACTION ===== */
+  document.querySelector('.terminal').addEventListener('mousedown', function(e) {
+    e.preventDefault();
+  });
+
+  /* ===== GLOBAL F-KEY CAPTURE ===== */
+  document.addEventListener('keydown', function(e) {
+    if (['F1','F3','F5','F6','F7','F8'].indexOf(e.key) !== -1) {
+      e.preventDefault();
+    }
+    // Allow F3/F5 on completed batch screen to go back
+    if (operationComplete && (e.key === 'F3' || e.key === 'F5')) {
+      handleBatchBack();
+    }
+  });
+
+  showScreen(0);
+
+  // Re-focus the active input whenever the browser window regains OS focus
+  // (needed when AppActivate is called from an external macro like VBA)
+  window.addEventListener('focus', function() {
+    var screen = document.querySelector('.screen.active');
+    if (!screen) return;
+    var activeInput = screen.querySelector('input');
+    if (activeInput) activeInput.focus();
+  });
+})();
+</script>
+</body>
+</html>
